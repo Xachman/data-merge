@@ -1,10 +1,40 @@
 import unittest
 import os
 import pymysql.cursors
+from .DataMerge import DataMerge
+from .Database import Database
 
 
 class TestMerge(unittest.TestCase):
     def setUp(self):
+        removeDB1 = """
+        DROP DATABASE database1
+        """
+        removeDB2 = """
+        DROP DATABASE database2
+        """
+        createDb1 = """
+        CREATE DATABASE IF NOT EXISTS database1
+        """
+        createDb2 = """
+        CREATE DATABASE IF NOT EXISTS database2
+        """
+        dbc = pymysql.connect(host='mysqlhost',
+                             user='root',
+                             password='root',
+                             charset='utf8mb4',
+                             cursorclass=pymysql.cursors.DictCursor)
+        try:
+            print("db1 commit")
+            with dbc.cursor() as cursor:
+                cursor.execute(removeDB1)
+                cursor.execute(removeDB2)
+                cursor.execute(createDb1)
+                cursor.execute(createDb2)
+                dbc.commit()
+        finally:
+            dbc.close()
+
         db1 = pymysql.connect(host='mysqlhost',
                              user='root',
                              password='root',
@@ -29,7 +59,7 @@ class TestMerge(unittest.TestCase):
         CREATE TABLE IF NOT EXISTS `users_meta` (
             `id` int(11) NOT NULL AUTO_INCREMENT,
             `user_id` int(11) NOT NULL,
-            `key` varchar(255) COLLATE utf8_bin NOT NULL,
+            `meta_key` varchar(255) COLLATE utf8_bin NOT NULL,
             `value` varchar(255) COLLATE utf8_bin NOT NULL,
             PRIMARY KEY(`id`),
             FOREIGN KEY (user_id) REFERENCES users(id)
@@ -40,21 +70,27 @@ class TestMerge(unittest.TestCase):
         INSERT INTO users (username, email) VALUES ('timtheone', 'tim@timetheone.com'),
         ('sassysara', 'sara@gmail.com'),
         ('jason', 'jason@gmail.com');
-        INSERT INTO users_meta (user_id, key, value) VALUES (1, 'address', '123 tim lane'),
+        """
+        insertDB1_2 = """
+        INSERT INTO users_meta (user_id, meta_key, value) VALUES (1, 'address', '123 tim lane'),
         (2, 'address', '567 main street'),
         (2, 'phone', '555-555-5556'),
         (3, 'address', '935 wall street'),
         (3, 'phone', '555-555-5589');
         """
+
         insertDB2 = """
         INSERT INTO users (username, email) VALUES ('timtheone', 'tim@timetheone.com'),
+        ('john', 'john@gmail.com'),
         ('sassysara', 'sara@gmail.com');
-        INSERT INTO users (username, email) VALUES ('john', 'john@gmail.com');
-        INSERT INTO users_meta (user_id, key, value) VALUES (1, 'address', '123 tim lane');
-        INSERT INTO users_meta (user_id, key, value) VALUES (2, 'address', '567 main street');
-        INSERT INTO users_meta (user_id, key, value) VALUES (3, 'address', '456 elm street');
-        INSERT INTO users_meta (user_id, key, value) VALUES (2, 'phone', '555-555-5557');
-        INSERT INTO users_meta (user_id, key, value) VALUES (3, 'phone', '555-555-5550');
+        """
+        insertDB2_2 = """
+        INSERT INTO users_meta (user_id, meta_key, value) VALUES 
+        (1, 'address', '123 tim lane'),
+        (2, 'address', '567 main street'),
+        (3, 'address', '456 elm street'),
+        (2, 'phone', '555-555-5557'),
+        (3, 'phone', '555-555-5550');
         """
         try:
             print("db1 commit")
@@ -62,16 +98,34 @@ class TestMerge(unittest.TestCase):
                 cursor.execute(usersTableSql)
                 cursor.execute(usersMetaTableSql)
                 cursor.execute(insertDB1)
+                cursor.execute(insertDB1_2)
                 db1.commit()
             with db2.cursor() as cursor:
                 cursor.execute(usersTableSql)
                 cursor.execute(usersMetaTableSql)
                 cursor.execute(insertDB2)
+                cursor.execute(insertDB2_2)
                 db2.commit()
         finally:
             db1.close()
             db2.close()
-        
+    def getDB2(self):
+        return pymysql.connect(host='mysqlhost',
+                             user='root',
+                             password='root',
+                             db='database2',
+                             charset='utf8mb4',
+                             cursorclass=pymysql.cursors.DictCursor)
     def test_merge_simple(self):
-        print("testmerge")
-        self.assertTrue(False)
+        dm = DataMerge(Database('mysqlhost','root','root','database1'),
+        Database('mysqlhost','root','root','database1'))
+        dm.merge()
+        db2 = self.getDB2()
+        try:
+            with db2.cursor() as cursor:
+                cursor.execute("SELECT * FROM users")
+                result = cursor.fetchall()
+                print(result)
+                self.assertTrue(result[3]["username"], "jason")
+        finally:
+            db2.close()

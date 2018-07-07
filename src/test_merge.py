@@ -25,10 +25,9 @@ class TestMerge(unittest.TestCase):
                              charset='utf8mb4',
                              cursorclass=pymysql.cursors.DictCursor)
         try:
-            print("db1 commit")
             with dbc.cursor() as cursor:
-                cursor.execute(removeDB1)
-                cursor.execute(removeDB2)
+               # cursor.execute(removeDB1)
+               # cursor.execute(removeDB2)
                 cursor.execute(createDb1)
                 cursor.execute(createDb2)
                 dbc.commit()

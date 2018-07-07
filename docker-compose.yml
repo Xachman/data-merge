@@ -5,6 +5,9 @@ services:
       context: .
     volumes:
       - ./:/usr/src/app
-    external_links:
-      - mddd:mysqlhost
-    network_mode: bridge
+    links:
+      - mysql:mysqlhost
+  mysql:
+    image: mysql:5.7
+    environment: 
+      MYSQL_ROOT_PASSWORD: root

@@ -26,8 +26,8 @@ class TestMerge(unittest.TestCase):
                              cursorclass=pymysql.cursors.DictCursor)
         try:
             with dbc.cursor() as cursor:
-               # cursor.execute(removeDB1)
-               # cursor.execute(removeDB2)
+                cursor.execute(removeDB1)
+                cursor.execute(removeDB2)
                 cursor.execute(createDb1)
                 cursor.execute(createDb2)
                 dbc.commit()
@@ -124,7 +124,6 @@ class TestMerge(unittest.TestCase):
             with db2.cursor() as cursor:
                 cursor.execute("SELECT * FROM users")
                 result = cursor.fetchall()
-                print(result)
                 self.assertTrue(result[3]["username"], "jason")
         finally:
             db2.close()

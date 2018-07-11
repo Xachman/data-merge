@@ -117,7 +117,7 @@ class TestMerge(unittest.TestCase):
                              cursorclass=pymysql.cursors.DictCursor)
     def test_merge_simple(self):
         dm = DataMerge(Database('mysqlhost','root','root','database1'),
-        Database('mysqlhost','root','root','database1'))
+        Database('mysqlhost','root','root','database2'))
         dm.merge()
         db2 = self.getDB2()
         try:

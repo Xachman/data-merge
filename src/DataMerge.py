@@ -70,17 +70,37 @@ class DataMerge:
             dbc.close()
         return []
 
-        def diffDatabases(self, db1: Database, db2: Database):
-            dbc1 = self.connect(db1) 
-            dbc2 = self.connect(db2)
+    def diffDatabases(self, db1: Database, db2: Database):
+        dbc1 = self.connect(db1) 
+        dbc2 = self.connect(db2)
 
-            try:
-                with dbc1.cursor as cursor:
-                    cursor.execute("SHOW TABLES")
-                    results = cursor.fetchall()
-                    for result in results:
-                        data = self.getTableData(result["Tables_in_"+db1.database])
-                        self.compareData(data, db2)
+        try:
+            with dbc1.cursor() as cursor:
+                cursor.execute("SHOW TABLES")
+                results = cursor.fetchall()
+                for result in results:
+                    data1 = self.getTableData(result["Tables_in_"+db1.database], db1)
+                    data2 = self.getTableData(result["Tables_in_"+db1.database], db2)
+                    self.compareData(data1, data2)
 
-            finally:
-                dbc1.close()
+        finally:
+            dbc1.close()
+    
+    def getTableData(self, table, db: Database):
+        dbc = self.connect(db)
+
+        try:
+            with dbc.cursor() as cursor:
+                cursor.execute("SELECT * FROM {table}".format(table=table))
+                results = cursor.fetchall()
+                return results
+        finally:
+            dbc.close()
+
+    def compareData(self, data1, data2):
+        for i, val1 in enumerate(data1):
+            val2 = data2[i]
+            print(val2)
+
+
+
